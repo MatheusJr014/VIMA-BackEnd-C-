@@ -1,8 +1,7 @@
 using Microsoft.Extensions.Hosting;
-using VimaV2.Endpoints;
 using VimaV2.Models; 
-using VimaV2.Database; 
-
+using VimaV2.Database;
+using Microsoft.EntityFrameworkCore;
 namespace VimaV2
 {
 
@@ -15,32 +14,37 @@ namespace VimaV2
         {
 
             #region Swagger
-            // Criação da WebApplication
+            // CriaÃ§Ã£o da WebApplication
             var builder = WebApplication.CreateBuilder(args);
 
-            // Configuração do Swagger
+            // ConfiguraÃ§Ã£o do Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            // Construção da WebApplication
+            // ConfiguraÃ§Ã£o do Banco de Dados
+            builder.Services.AddDbContext<VimaV2DbContext>();
+
+            // ConstruÃ§Ã£o da WebApplication
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
             {
-                // Inicialização do Swagger
+                // InicializaÃ§Ã£o do Swagger
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
+           
+                 
 
 
 
             #endregion
 
             #region Users
-            app.MapGet("/usuarios", () =>
+            app.MapGet("/usuarios", (VimaV2DbContext dbContext) =>
             {
-                return Results.Ok(usuarios);
+                return Results.Ok(dbContext.Usuarios);
             });
             app.MapGet("/usuario/{Id}", (int Id ) =>
             {
@@ -51,17 +55,12 @@ namespace VimaV2
                 }
                 return Results.Ok(user); 
             });
-            app.MapPost("/usuario", (User user) =>
+            app.MapPost("/usuario", (VimaV2DbContext dbContext, User user) =>
             {
-                if (usuarios.Count () == 0)
-                {
-                    user.Id = 1; 
-                }
-                else
-                {
-                    user.Id = 1 + usuarios.Max(u => u.Id);
-                }
-                usuarios.Add (user);
+
+                dbContext.Usuarios.Add(user);
+                dbContext.SaveChanges();
+
                 return Results.Created($"/usuario/ {user.Id}", user); 
             });
 
@@ -120,19 +119,11 @@ namespace VimaV2
                 return Results.Ok(contatos);
             });
 
-            app.MapPost("/contact", (Contato contatos) =>
-            {
-                if (contact.Count() == 0)
-                {
-                    contatos.Id = 1;
-                }
-                else
-                {
-                    contatos.Id = 1 + contact.Max(u => u.Id);
-                }
-                contact.Add(contatos);
-                return Results.Created($"/usuario/ {contatos.Id}", contatos);
-            });
+            //rotaFilmes.MapPost("/", (MeusFilmesDbContext dbContext, Filme filme) =>
+
+           
+
+
 
             app.MapPost("/contact/seed", () =>
             {
@@ -144,33 +135,10 @@ namespace VimaV2
                     Wesley
 
                     ]);
-                return Results.Created();
-
-            });
-            app.MapPut("/contact/ {Id}", (int Id, Contato contatos) =>
-            {
-                int indiceContato = contact.FindIndex(u => u.Id == Id);
-                if (indiceContato == -1)
-                {
-                    return Results.NotFound();
-                }
-                contatos.Id = Id;
-                contact[indiceContato] = contatos;
-                return Results.NoContent();
-            });
-
-            app.MapDelete("/contact/{Id}", (int Id) =>
-            {
-                int indiceContato = contact.FindIndex(u => u.Id == Id);
-                if (indiceContato == -1)
-                {
-                    return Results.NotFound();
-                }
-                contact.RemoveAt(indiceContato);
-                return Results.NoContent();
+                return Results.Created();   
             });
             #endregion
-            // Execução da aplicação
+            // ExecuÃ§Ã£o da aplicaÃ§Ã£o
             app.Run();
         }
 
